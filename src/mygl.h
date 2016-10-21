@@ -7,6 +7,7 @@
 #include <scene/cylinder.h>
 #include <scene/sphere.h>
 #include "camera.h"
+#include <mesh.h>
 
 #include <QOpenGLVertexArrayObject>
 #include <QOpenGLShaderProgram>
@@ -18,6 +19,9 @@ class MyGL
 private:
     Cylinder geom_cylinder;// The instance of a unit cylinder we can use to render any cylinder
     Sphere geom_sphere;// The instance of a unit sphere we can use to render any sphere
+
+    Mesh geom_mesh;//Mesh unit
+
     ShaderProgram prog_lambert;// A shader program that uses lambertian reflection
     ShaderProgram prog_flat;// A shader program that uses "flat" reflection (no shadowing at all)
 

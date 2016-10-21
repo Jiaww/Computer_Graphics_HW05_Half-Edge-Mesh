@@ -1,3 +1,4 @@
+
 #include "mygl.h"
 #include <la.h>
 
@@ -8,7 +9,7 @@
 
 MyGL::MyGL(QWidget *parent)
     : GLWidget277(parent),
-      geom_cylinder(this), geom_sphere(this),
+      geom_cylinder(this), geom_sphere(this),geom_mesh(this),
       prog_lambert(this), prog_flat(this),
       gl_camera()
 {
@@ -24,6 +25,7 @@ MyGL::~MyGL()
     glDeleteVertexArrays(1, &vao);
     geom_cylinder.destroy();
     geom_sphere.destroy();
+    geom_mesh.destroy();
 }
 
 void MyGL::initializeGL()
@@ -54,6 +56,13 @@ void MyGL::initializeGL()
     geom_cylinder.create();
 
     geom_sphere.create();
+
+    //Create the cube in Mesh:
+    geom_mesh.LoadCube();
+    geom_mesh.Triangular();
+    geom_mesh.create();
+
+    int test = geom_mesh.Test();
 
     // Create and set up the diffuse shader
     prog_lambert.create(":/glsl/lambert.vert.glsl", ":/glsl/lambert.frag.glsl");
@@ -107,7 +116,10 @@ void MyGL::paintGL()
     //Send the geometry's transformation matrix to the shader
     prog_lambert.setModelMatrix(model);
     //Draw the example sphere using our lambert shader
-    prog_lambert.draw(geom_sphere);
+    //prog_lambert.draw(geom_sphere);
+
+    //Draw mesh
+    prog_lambert.draw(geom_mesh);
 
     //Now do the same to render the cylinder
     //We've rotated it -45 degrees on the Z axis, then translated it to the point <2,2,0>

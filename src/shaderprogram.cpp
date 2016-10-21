@@ -154,7 +154,10 @@ void ShaderProgram::draw(Drawable &d)
         context->glEnableVertexAttribArray(attrNor);
         context->glVertexAttribPointer(attrNor, 4, GL_FLOAT, false, 0, NULL);
     }
-
+    if (attrCol != -1 && d.bindCol()) {
+        context->glEnableVertexAttribArray(attrCol);
+        context->glVertexAttribPointer(attrCol, 4, GL_FLOAT, false, 0, NULL);
+    }
     // Bind the index buffer and then draw shapes from it.
     // This invokes the shader program, which accesses the vertex buffers.
     d.bindIdx();
@@ -162,6 +165,7 @@ void ShaderProgram::draw(Drawable &d)
 
     if (attrPos != -1) context->glDisableVertexAttribArray(attrPos);
     if (attrNor != -1) context->glDisableVertexAttribArray(attrNor);
+    if (attrCol != -1) context->glDisableVertexAttribArray(attrCol);
 
     context->printGLErrorLog();
 }

@@ -13,7 +13,9 @@ SOURCES += \
     $$PWD/la.cpp \
     $$PWD/drawable.cpp \
     $$PWD/camera.cpp \
-    $$PWD/cameracontrolshelp.cpp
+    $$PWD/cameracontrolshelp.cpp \
+    $$PWD/halfedge.cpp \
+    $$PWD/mesh.cpp
 
 HEADERS += \
     $$PWD/la.h \
@@ -26,4 +28,6 @@ HEADERS += \
     $$PWD/scene/sphere.h \
     $$PWD/drawable.h \
     $$PWD/camera.h \
-    $$PWD/cameracontrolshelp.h
+    $$PWD/cameracontrolshelp.h \
+    $$PWD/halfedge.h \
+    $$PWD/mesh.h
