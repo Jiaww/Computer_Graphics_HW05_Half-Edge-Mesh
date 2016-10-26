@@ -1,0 +1,31 @@
+HelpLog:
+10/21/2016:
+Can’t link timeUpdate() slot.
+Solved:
+ add “Q_OBJECT” in class MyGL.
+
+10/22/2016
+How to Triangluar the mesh.
+Solved:
+ first I tried the method teached in the class, but this way would change the variables in mesh, and according the piazza, we should not do this. Then I triangulate the mesh when create() by triangulate the index buffer.
+
+10/23/2016:
+Didn’t know how to create the class of highlight points and lines.
+Solved:
+Inherited the class Drawable, and rewrite the virtual function create() and drawMode().
+
+10/23/2016:
+Lose focus of mygl.
+Solved:
+This->setFocusPolicy(Qt::ClickFocus);
+10/24/2016:
+The mainwindows cannot create the Mesh variables
+Solved:
+When I did 4.5, I first planed to load the OBJ file in mainwindows and create a Mesh variable in mainwindows, then set the value by OBJ file and pass the mesh variable by signal-slot to MyGL. However, the mainwindows cannot create a Mesh variable because of the initialization is different.
+Thus I just passed a signal to call the Loading function in MyGL and it worked.
+
+10/25/2016:
+I didn’t know the requirement of 4.6 that “you could use GLSL's sine function in conjunction with u_Time and the built-in GLSL variable gl_FragCoord (the screen-space position of a fragment) to modify the red, green, and blue channels of a fragment.”
+Unsolved:
+I just wrote a simple calculation of gl_FragCoord with u_Time and diifuseColor to change the color of fragment, but the effect is a little strange. 
+ 

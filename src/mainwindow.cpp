@@ -1,7 +1,9 @@
 #include "mainwindow.h"
 #include <ui_mainwindow.h>
 #include "cameracontrolshelp.h"
-
+#include <QFile>
+#include <QFileDialog>
+#include <QDir>
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -25,4 +27,12 @@ void MainWindow::on_actionCamera_Controls_triggered()
 {
     CameraControlsHelp* c = new CameraControlsHelp();
     c->show();
+}
+
+void MainWindow::on_actionLoadOBJ_triggered(){
+    emit sig_SendLoadOBJTriggered();
+}
+
+void MainWindow::on_actionExportOBJ_triggered(){
+    emit sig_SendExportOBJTriggered();
 }

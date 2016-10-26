@@ -1,10 +1,16 @@
 #include "mesh.h"
 #include <halfedge.h>
 #include <la.h>
+#include <iostream>
+#include <random>
+#include <ctime>
+#include <cstdlib>
+
 //Mesh::Mesh()
 //{
 
 //}
+
 Mesh::Mesh(GLWidget277 *context) : Drawable(context)
 {}
 
@@ -18,7 +24,7 @@ void Mesh::Triangular(){
             count++;
             HE0 = HE0->next;
         }
-        if(count == 4){
+        if(count > 3){
             //quadrangle:
             //Step1: Create two new halfedges HEA and HEB
             HalfEdge *HEA = new HalfEdge;
@@ -48,39 +54,48 @@ void Mesh::Triangular(){
             HalfEdges.push_back(HEA);
             HalfEdges.push_back(HEB);
             Faces.push_back(FACE2);
+            i--;
         }
+
     }
 }
 
 void Mesh::create(){
-    GLuint mesh_idx[3*Faces.size()];
-    glm::vec4 mesh_face_col[Vertices.size()];
+    std::vector <int> mesh_idx;
+    glm::vec4 mesh_vert_col[Vertices.size()];
     glm::vec4 mesh_vert_pos[Vertices.size()];
     glm::vec4 mesh_vert_nor[Vertices.size()];
    // glm::vec4 mesh_vert_nor[Vertices.size()];
 
-    //Set Vertex position and normal:
+    //Set Vertex position and normal and colors:
     for(int i = 0; i < Vertices.size(); i++){
         mesh_vert_pos[i] = glm::vec4(Vertices[i]->pos[0],Vertices[i]->pos[1],Vertices[i]->pos[2],1);
         mesh_vert_nor[i] = glm::vec4(Vertices[i]->nor[0],Vertices[i]->nor[1],Vertices[i]->nor[2],1);
-        Vertices[i]->id = i;
+        mesh_vert_col[i] = glm::vec4(Vertices[i]->col,1);
     }
 
-    //Set Indices and Colors:
+    count = 0;
+    //Set Indices:
     for(int i = 0; i < Faces.size(); i++){
         HalfEdge *edge = Faces[i]->start_edge;
-        mesh_idx[3*i] = edge->vert->id;
-        mesh_face_col[edge->vert->id] = glm::vec4(Faces[i]->color[0],Faces[i]->color[1],Faces[i]->color[2],1);
-        edge = edge->next;
-        mesh_idx[3*i+1] = edge->vert->id;
-        mesh_face_col[edge->vert->id] = glm::vec4(Faces[i]->color[0],Faces[i]->color[1],Faces[i]->color[2],1);
-        edge = edge->next;
-        mesh_idx[3*i+2] = edge->vert->id;
-        mesh_face_col[edge->vert->id] = glm::vec4(Faces[i]->color[0],Faces[i]->color[1],Faces[i]->color[2],1);
+        std::vector <Vertex*> verts;
+        verts.push_back(edge->vert);
+        while(edge->next != Faces[i]->start_edge){
+            edge = edge->next;
+            verts.push_back(edge->vert);
+        }
+        //Triangluate:
+        for(int j = 0; j+2 < verts.size(); j++){
+            mesh_idx.push_back(verts[0]->nor_id);
+            mesh_idx.push_back(verts[j+1]->nor_id);
+            mesh_idx.push_back(verts[j+2]->nor_id);
+            }
     }
-
-
-    count = 3 * Faces.size();
+    count = mesh_idx.size();
+    GLuint mesh_idx_array[count];
+    for(int i = 0; i < count; i++){
+        mesh_idx_array[i] = mesh_idx[i];
+    }
 
     // Create a VBO on our GPU and store its handle in bufIdx
     generateIdx();
@@ -89,7 +104,7 @@ void Mesh::create(){
     context->glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, bufIdx);
     // Pass the data stored in cyl_idx into the bound buffer, reading a number of bytes equal to
     // SPH_IDX_COUNT multiplied by the size of a GLuint. This data is sent to the GPU to be read by shader programs.
-    context->glBufferData(GL_ELEMENT_ARRAY_BUFFER, 3 * Faces.size() * sizeof(GLuint), mesh_idx, GL_STATIC_DRAW);
+    context->glBufferData(GL_ELEMENT_ARRAY_BUFFER, count * sizeof(GLuint), mesh_idx_array, GL_STATIC_DRAW);
 
     // The next few sets of function calls are basically the same as above, except bufPos and bufNor are
     // array buffers rather than element array buffers, as they store vertex attributes like position.
@@ -104,10 +119,13 @@ void Mesh::create(){
     //Create a VBO of color
     generateCol();
     context->glBindBuffer(GL_ARRAY_BUFFER, bufCol);
-    context->glBufferData(GL_ARRAY_BUFFER, Vertices.size() * sizeof(glm::vec4), mesh_face_col, GL_STATIC_DRAW);
+    context->glBufferData(GL_ARRAY_BUFFER, Vertices.size() * sizeof(glm::vec4), mesh_vert_col, GL_STATIC_DRAW);
 }
 
 void Mesh::LoadCube(){
+    num_Vert = 8;
+    num_Face = 6;
+    num_HalfEdges = 24;
     //Eight Vertices:
     Vertex *V0 = new Vertex(0), *V1 = new Vertex(1),
             *V2 = new Vertex(2), *V3 = new Vertex(3),
@@ -146,6 +164,57 @@ void Mesh::LoadCube(){
     V52->pos = glm::vec3( 0.5,  0.5,  0.5);
     V62->pos = glm::vec3( 0.5,  0.5, -0.5);
     V72->pos = glm::vec3(-0.5,  0.5, -0.5);
+    //set id:
+    V0->id = 0;
+    V1->id = 1;
+    V2->id = 2;
+    V3->id = 3;
+    V4->id = 4;
+    V5->id = 5;
+    V6->id = 6;
+    V7->id = 7;
+    V01->id = 0;
+    V11->id = 1;
+    V21->id = 2;
+    V31->id = 3;
+    V41->id = 4;
+    V51->id = 5;
+    V61->id = 6;
+    V71->id = 7;
+    V02->id = 0;
+    V12->id = 1;
+    V22->id = 2;
+    V32->id = 3;
+    V42->id = 4;
+    V52->id = 5;
+    V62->id = 6;
+    V72->id = 7;
+
+    //set nor_id
+    V0->nor_id = 0;
+    V1->nor_id = 1;
+    V2->nor_id = 2;
+    V3->nor_id = 3;
+    V4->nor_id = 4;
+    V5->nor_id = 5;
+    V6->nor_id = 6;
+    V7->nor_id = 7;
+    V01->nor_id = 8;
+    V11->nor_id = 9;
+    V21->nor_id = 10;
+    V31->nor_id = 11;
+    V41->nor_id = 12;
+    V51->nor_id = 13;
+    V61->nor_id = 14;
+    V71->nor_id = 15;
+    V02->nor_id = 16;
+    V12->nor_id = 17;
+    V22->nor_id = 18;
+    V32->nor_id = 19;
+    V42->nor_id = 20;
+    V52->nor_id = 21;
+    V62->nor_id = 22;
+    V72->nor_id = 23;
 
     //bottom face:
     Face *F0 = new Face(0);
@@ -164,13 +233,21 @@ void Mesh::LoadCube(){
     HE3->face = F0;
     //set Vertex
     HE0->vert = V0;
+    V0->edge = HE0;
     HE1->vert = V1;
+    V1->edge = HE1;
     HE2->vert = V2;
+    V2->edge = HE2;
     HE3->vert = V3;
+    V3->edge = HE3;
     V0->nor = glm::vec3(0,-1,0);
     V1->nor = glm::vec3(0,-1,0);
     V2->nor = glm::vec3(0,-1,0);
     V3->nor = glm::vec3(0,-1,0);
+    V0->col = F0->color;
+    V1->col = F0->color;
+    V2->col = F0->color;
+    V3->col = F0->color;
 
     //front face:
     Face *F1 = new Face(1);
@@ -189,13 +266,21 @@ void Mesh::LoadCube(){
     HE7->face = F1;
     //set Vertex
     HE4->vert = V31;
+    V31->edge = HE4;
     HE5->vert = V5;
+    V5->edge = HE5;
     HE6->vert = V4;
+    V4->edge = HE6;
     HE7->vert = V01;
+    V01->edge = HE7;
     V31->nor = glm::vec3(0,0,1);
     V5->nor = glm::vec3(0,0,1);
     V4->nor = glm::vec3(0,0,1);
     V01->nor = glm::vec3(0,0,1);
+    V01->col = F1->color;
+    V31->col = F1->color;
+    V5->col = F1->color;
+    V4->col = F1->color;
 
     //right face:
     Face *F2 = new Face(2);
@@ -214,13 +299,22 @@ void Mesh::LoadCube(){
     HE11->face = F2;
     //set Vertex
     HE8->vert = V21;
+    V21->edge = HE8;
     HE9->vert = V6;
+    V6->edge = HE9;
     HE10->vert = V51;
+    V51->edge = HE10;
     HE11->vert = V32;
+    V32->edge = HE11;
     V21->nor = glm::vec3(1,0,0);
     V6->nor = glm::vec3(1,0,0);
     V51->nor = glm::vec3(1,0,0);
     V32->nor = glm::vec3(1,0,0);
+
+    V21->col = F2->color;
+    V6->col = F2->color;
+    V51->col = F2->color;
+    V32->col = F2->color;
 
     //top face:
     Face *F3 = new Face(3);
@@ -239,13 +333,22 @@ void Mesh::LoadCube(){
     HE15->face = F3;
     //set Vertex
     HE12->vert = V52;
+    V52->edge = HE12;
     HE13->vert = V61;
+    V61->edge = HE13;
     HE14->vert = V7;
+    V7->edge = HE14;
     HE15->vert = V41;
+    V41->edge = HE15;
     V52->nor = glm::vec3(0,1,0);
     V61->nor = glm::vec3(0,1,0);
     V7->nor = glm::vec3(0,1,0);
     V41->nor = glm::vec3(0,1,0);
+
+    V52->col = F3->color;
+    V61->col = F3->color;
+    V7->col = F3->color;
+    V41->col = F3->color;
 
     //back face:
     Face *F4 = new Face(4);
@@ -264,13 +367,22 @@ void Mesh::LoadCube(){
     HE19->face = F4;
     //set Vertex
     HE16->vert = V11;
+    V11->edge = HE16;
     HE17->vert = V71;
+    V71->edge = HE17;
     HE18->vert = V62;
+    V62->edge = HE18;
     HE19->vert = V22;
+    V22->edge = HE19;
     V11->nor = glm::vec3(0,0,-1);
     V71->nor = glm::vec3(0,0,-1);
     V62->nor = glm::vec3(0,0,-1);
     V22->nor = glm::vec3(0,0,-1);
+
+    V11->col = F4->color;
+    V71->col = F4->color;
+    V62->col = F4->color;
+    V22->col = F4->color;
 
     //left face:
     Face *F5 = new Face(5);
@@ -289,13 +401,22 @@ void Mesh::LoadCube(){
     HE23->face = F5;
     //set Vertex
     HE20->vert = V02;
+    V02->edge = HE20;
     HE21->vert = V42;
+    V42->edge = HE21;
     HE22->vert = V72;
+    V72->edge = HE22;
     HE23->vert = V12;
+    V12->edge = HE23;
     V02->nor = glm::vec3(-1,0,0);
     V42->nor = glm::vec3(-1,0,0);
     V72->nor = glm::vec3(-1,0,0);
     V12->nor = glm::vec3(-1,0,0);
+
+    V02->col = F5->color;
+    V42->col = F5->color;
+    V72->col = F5->color;
+    V12->col = F5->color;
 
     //set SYM:
     HE0->sym = HE4;
@@ -356,6 +477,15 @@ void Mesh::LoadCube(){
     Vertices.push_back(V52);
     Vertices.push_back(V62);
     Vertices.push_back(V72);
+    Unique_Vertices.push_back(V0);
+    Unique_Vertices.push_back(V1);
+    Unique_Vertices.push_back(V2);
+    Unique_Vertices.push_back(V3);
+    Unique_Vertices.push_back(V4);
+    Unique_Vertices.push_back(V5);
+    Unique_Vertices.push_back(V6);
+    Unique_Vertices.push_back(V7);
+
     //HalfEdges
     HalfEdges.push_back(HE0);
     HalfEdges.push_back(HE1);
@@ -381,4 +511,82 @@ void Mesh::LoadCube(){
     HalfEdges.push_back(HE21);
     HalfEdges.push_back(HE22);
     HalfEdges.push_back(HE23);
+}
+
+void Mesh::RepositionVert(Vertex *V, glm::vec4 new_pos){
+    //find all face:
+    glm::vec3 origin_pos = V->pos;
+    for(int i = 0; i < Vertices.size(); i++){
+        if(Vertices[i]->pos == origin_pos){
+            Vertices[i]->pos = glm::vec3(new_pos);
+            Vertices[i]->nor = Vertices[i]->edge->next->vert->nor;
+        }
+    }
+    HalfEdge *edge = V->edge;
+    do{
+        HalfEdge *origin_edge=edge;
+        do{
+            //recalculate the normal
+            edge->next->vert->nor = glm::normalize(glm::cross(edge->next->vert->pos - edge->vert->pos, edge->next->next->vert->pos - edge->next->vert->pos));
+            edge = edge->next;
+        }while(edge != origin_edge);
+        edge = edge->next->sym;
+    }while(edge != V->edge);
+    //find all the Vertices = V, and update their position and normal
+
+}
+
+
+void Mesh::setFromFile(std::vector<glm::vec4> vert_pos, std::vector<glm::vec4> vert_uv,
+                       std::vector<glm::vec4> vert_nor, std::vector<QStringList> faces_con){
+    Vertices.clear();
+    Unique_Vertices.clear();
+    Faces.clear();
+    HalfEdges.clear();
+    //set unique array:
+    bool Used[vert_pos.size()]={};
+    srand((unsigned)time(NULL));
+    for(int i = 0; i < faces_con.size(); i++){
+        // every line is a QStringList, representing a Face
+        Face *F = new Face;
+        float r, g, b;
+        r = float(rand()%2001-1000)/1000.0;
+        g = float(rand()%2001-1000)/1000.0;
+        b = float(rand()%2001-1000)/1000.0;
+        F->color = glm::vec3(r,g,b);
+        int FirstHE = HalfEdges.size();
+        for(int j = 1; j < faces_con[i].size(); j++){
+            QStringList strlist = faces_con[i][j].split('/');
+            //set V
+            Vertex *V= new Vertex;
+            V->id = strlist[0].toInt() - 1;
+            V->nor_id = Vertices.size();
+            //V->id = Vertices.size();
+            V->pos = glm::vec3(vert_pos[strlist[0].toInt() - 1]);
+            V->nor = glm::vec3(vert_nor[strlist[2].toInt() - 1]);
+            V->col = F->color;
+            //set HE
+            HalfEdge *HE = new HalfEdge;
+            HE->face = F;
+            HE->vert = V;
+            V->edge = HE;
+            Vertices.push_back(V);
+            if(!Used[strlist[0].toInt() - 1]){
+                Unique_Vertices.push_back(V);
+                Used[strlist[0].toInt() - 1] = true;
+            }
+            HE->id = HalfEdges.size();
+            //set the HE->next
+            if(j != 1)
+                HalfEdges[HalfEdges.size()-1]->next = HE;
+            if(j == faces_con[i].size() -1){
+                HE->next = HalfEdges[FirstHE];
+            }
+            HalfEdges.push_back(HE);
+        }
+        F->start_edge = HalfEdges[HalfEdges.size()-1];
+        F->id = Faces.size();
+        Faces.push_back(F);
+    }
+    std::cout<<Vertices.size()<<"\n"<<Faces.size()<<"\n"<<HalfEdges.size()<<"\n";
 }

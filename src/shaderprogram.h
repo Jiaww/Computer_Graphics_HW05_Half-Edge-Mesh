@@ -24,6 +24,9 @@ public:
     int unifViewProj; // A handle for the "uniform" mat4 representing combined projection and view matrices in the vertex shader
     int unifColor; // A handle for the "uniform" vec4 representing color of geometry in the vertex shader
 
+    int unifTime; //A handle for the u_Time
+    int unifRenderMode; //A handle for the u_RenderMode
+    int unifFunc1; //A fun in shader
 public:
     ShaderProgram(GLWidget277* context);
     // Sets up the requisite GL data and shaders from the given .glsl files
@@ -44,7 +47,10 @@ public:
     void printShaderInfoLog(int shader);
     // Utility function that prints any shader linking errors to the console
     void printLinkInfoLog(int prog);
-
+    // Set the TimeCount:
+    void setUnifTime(int timeCount);
+    void setRenderMode(int RenderMode);
+    void setFunc1(int Func1);
     QString qTextFileRead(const char*);
 
 private:

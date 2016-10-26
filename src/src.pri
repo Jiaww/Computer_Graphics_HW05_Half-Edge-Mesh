@@ -15,7 +15,10 @@ SOURCES += \
     $$PWD/camera.cpp \
     $$PWD/cameracontrolshelp.cpp \
     $$PWD/halfedge.cpp \
-    $$PWD/mesh.cpp
+    $$PWD/mesh.cpp \
+    $$PWD/mylistwidget.cpp \
+    $$PWD/points.cpp \
+    $$PWD/mydoublespinbox.cpp
 
 HEADERS += \
     $$PWD/la.h \
@@ -30,4 +33,7 @@ HEADERS += \
     $$PWD/camera.h \
     $$PWD/cameracontrolshelp.h \
     $$PWD/halfedge.h \
-    $$PWD/mesh.h
+    $$PWD/mesh.h \
+    $$PWD/mylistwidget.h \
+    $$PWD/points.h \
+    $$PWD/mydoublespinbox.h

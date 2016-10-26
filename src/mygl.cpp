@@ -5,18 +5,27 @@
 #include <iostream>
 #include <QApplication>
 #include <QKeyEvent>
+#include <QListWidget>
+#include <QFile>
+#include <QFileDialog>
+#include <QDir>
 
 
 MyGL::MyGL(QWidget *parent)
     : GLWidget277(parent),
       geom_cylinder(this), geom_sphere(this),geom_mesh(this),
-      prog_lambert(this), prog_flat(this),
+      HighlightVertex(this),HighlightHalfLine(this),HighlightHFace(this),
+      prog_lambert(this), prog_flat(this),timeCount(0),RenderMode(0),Func1(0),
       gl_camera()
 {
     // Connect the timer to a function so that when the timer ticks the function is executed
     connect(&timer, SIGNAL(timeout()), this, SLOT(timerUpdate()));
     // Tell the timer to redraw 60 times per second
     timer.start(16);
+    this->setFocusPolicy(Qt::ClickFocus);
+    timeCount = 0;
+    RenderMode = 0;
+    Func1 = 0;
 }
 
 MyGL::~MyGL()
@@ -26,6 +35,9 @@ MyGL::~MyGL()
     geom_cylinder.destroy();
     geom_sphere.destroy();
     geom_mesh.destroy();
+    HighlightVertex.destroy();
+    HighlightHalfLine.destroy();
+    HighlightHFace.destroy();
 }
 
 void MyGL::initializeGL()
@@ -59,10 +71,23 @@ void MyGL::initializeGL()
 
     //Create the cube in Mesh:
     geom_mesh.LoadCube();
-    geom_mesh.Triangular();
+    //geom_mesh.Triangular();
+    //geom_mesh.RepositionVert(0, glm::vec4(-1,-1,1,1));
     geom_mesh.create();
+    HighlightVertex.setVert(geom_mesh.Unique_Vertices[3]);
+    HighlightVertex.create();
+    HighlightHalfLine.setLine(geom_mesh.HalfEdges[0]);
+    HighlightHalfLine.create();
+    HighlightHFace.setFace(geom_mesh.Faces[1]);
+    HighlightHFace.create();
 
-    int test = geom_mesh.Test();
+
+    //emit signals
+    emit sig_PassVertices(geom_mesh.num_Vert);
+    emit sig_PassHalfEdges(geom_mesh.HalfEdges.size());
+    emit sig_PassFaces(geom_mesh.Faces.size());
+
+//    int test = geom_mesh.Test();
 
     // Create and set up the diffuse shader
     prog_lambert.create(":/glsl/lambert.vert.glsl", ":/glsl/lambert.frag.glsl");
@@ -78,6 +103,8 @@ void MyGL::initializeGL()
     // using multiple VAOs, we can just bind one once.
 //    vao.bind();
     glBindVertexArray(vao);
+
+
 }
 
 void MyGL::resizeGL(int w, int h)
@@ -120,12 +147,17 @@ void MyGL::paintGL()
 
     //Draw mesh
     prog_lambert.draw(geom_mesh);
+    prog_lambert.draw(HighlightVertex);
+    prog_lambert.draw(HighlightHalfLine);
+    prog_lambert.draw(HighlightHFace);
 
     //Now do the same to render the cylinder
     //We've rotated it -45 degrees on the Z axis, then translated it to the point <2,2,0>
     model = glm::translate(glm::mat4(1.0f), glm::vec3(2,2,0)) * glm::rotate(glm::mat4(1.0f), glm::radians(-45.0f), glm::vec3(0,0,1));
     prog_lambert.setModelMatrix(model);
-    prog_lambert.draw(geom_cylinder);
+    //prog_lambert.draw(geom_cylinder);
+
+
 #endif
 }
 
@@ -170,6 +202,59 @@ void MyGL::keyPressEvent(QKeyEvent *e)
         gl_camera.TranslateAlongUp(amount);
     } else if (e->key() == Qt::Key_R) {
         gl_camera = Camera(this->width(), this->height());
+        //  swap the RenderMode
+        if(RenderMode == 0){
+            RenderMode = 1;
+        } else {
+            RenderMode = 0;
+        }
+        prog_lambert.setRenderMode(RenderMode);
+    } else if (e->key() == Qt::Key_N) {
+        //next
+        HighlightHalfLine.HE = HighlightHalfLine.HE->next;
+        HighlightHalfLine.create();
+        emit sig_ChangeSelectedHalfEdge(HighlightHalfLine.HE->id);
+    } else if (e->key() == Qt::Key_M) {
+        //sym
+        HighlightHalfLine.HE = HighlightHalfLine.HE->sym;
+        HighlightHalfLine.create();
+        emit sig_ChangeSelectedHalfEdge(HighlightHalfLine.HE->id);
+    } else if (e->key() == Qt::Key_F) {
+        // FACE of the currently selected half-edge
+        HighlightHFace.F = HighlightHalfLine.HE->face;
+        HighlightHFace.create();
+        emit sig_ChangeSelectedFace(HighlightHFace.F->id);
+    } else if (e->key() == Qt::Key_V) {
+        // VERTEX of the currently selected half-edge
+        HighlightVertex.V = HighlightHalfLine.HE->vert;
+        HighlightVertex.create();
+        int id_num = HighlightVertex.V->id;
+        if(id_num > 7){
+            if(id_num > 15)
+                id_num = (id_num + 1) / 3;
+            else
+                id_num = (id_num + 1) / 2;
+        }
+        emit sig_ChangeSelectedVertex(id_num);
+    } else if (e->key() == Qt::Key_H) {
+        //HALF-EDGE of the currently selected vertex
+        HighlightHalfLine.HE = HighlightVertex.V->edge;
+        HighlightHalfLine.create();
+        emit sig_ChangeSelectedHalfEdge(HighlightHalfLine.HE->id);
+    } else if (e->key() == Qt::Key_Shift && Qt::Key_H) {
+        //HALF-EDGE of the currently selected face
+        HighlightHalfLine.HE = HighlightHFace.F->start_edge;
+        HighlightHalfLine.create();
+        emit sig_ChangeSelectedHalfEdge(HighlightHalfLine.HE->id);
+    } else if (e->key() == Qt::Key_X){
+        //Func1
+        //  swap the Func1
+        if(Func1 != 3){
+            Func1++;
+        } else {
+            Func1 = 0;
+        }
+        prog_lambert.setFunc1(Func1);
     }
     gl_camera.RecomputeAttributes();
     update();  // Calls paintGL, among other things
@@ -180,4 +265,220 @@ void MyGL::timerUpdate()
     // This function is called roughly 60 times per second.
     // Use it to perform any repeated actions you want to do,
     // such as
+    timeCount++;
+    prog_lambert.setUnifTime(timeCount);
+    if(RenderMode == 1 || Func1 != 0)
+        this->update();
+}
+
+void MyGL::slot_VertexClicked(QListWidgetItem *p){
+    QString name = p->text();
+    int num = name.toInt();
+    Vertex *V = geom_mesh.Unique_Vertices[num];
+    HighlightVertex.setVert(V);
+    HighlightVertex.create();
+    this->update();
+}
+
+void MyGL::slot_HalfEdgeClicked(QListWidgetItem *p){
+    QString name = p->text();
+    int num = name.toInt();
+    HalfEdge *HE = geom_mesh.HalfEdges[num];
+    HighlightHalfLine.setLine(HE);
+    HighlightHalfLine.create();
+    this->update();
+}
+
+void MyGL::slot_FaceClicked(QListWidgetItem *p){
+    QString name = p->text();
+    int num = name.toInt();
+    Face *F = geom_mesh.Faces[num];
+    HighlightHFace.setFace(F);
+    HighlightHFace.create();
+    this->update();
+}
+
+void MyGL::slot_PosXChanged(double x){
+    glm::vec4 new_pos(HighlightVertex.V->pos, 1);
+    new_pos[0] += x;
+    geom_mesh.RepositionVert(HighlightVertex.V, new_pos);
+    HighlightVertex.create();
+    HighlightHalfLine.create();
+    HighlightHFace.create();
+    geom_mesh.create();
+    this->update();
+}
+
+void MyGL::slot_PosYChanged(double y){
+    glm::vec4 new_pos(HighlightVertex.V->pos, 1);
+    new_pos[1] += y;
+    geom_mesh.RepositionVert(HighlightVertex.V, new_pos);
+    HighlightVertex.create();
+    HighlightHalfLine.create();
+    HighlightHFace.create();
+    geom_mesh.create();
+    this->update();
+}
+
+void MyGL::slot_PosZChanged(double z){
+    glm::vec4 new_pos(HighlightVertex.V->pos, 1);
+    new_pos[2] += z;
+    geom_mesh.RepositionVert(HighlightVertex.V, new_pos);
+    HighlightVertex.create();
+    HighlightHalfLine.create();
+    HighlightHFace.create();
+    geom_mesh.create();
+    this->update();
+}
+
+void MyGL::slot_ColXChanged(double x){
+    HighlightHFace.F->color[0] += x;
+    HalfEdge *HE = HighlightHFace.F->start_edge;
+    do{
+        HE->vert->col = HighlightHFace.F->color;
+        HE = HE->next;
+    }while(HE != HighlightHFace.F->start_edge);
+    HighlightVertex.create();
+    HighlightHalfLine.create();
+    HighlightHFace.create();
+    geom_mesh.create();
+    this->update();
+}
+
+void MyGL::slot_ColYChanged(double y){
+    HighlightHFace.F->color[1] += y;
+    HalfEdge *HE = HighlightHFace.F->start_edge;
+    do{
+        HE->vert->col = HighlightHFace.F->color;
+        HE = HE->next;
+    }while(HE != HighlightHFace.F->start_edge);
+    HighlightVertex.create();
+    HighlightHalfLine.create();
+    HighlightHFace.create();
+    geom_mesh.create();
+    this->update();
+}
+
+void MyGL::slot_ColZChanged(double z){
+    HighlightHFace.F->color[2] += z;
+    HalfEdge *HE = HighlightHFace.F->start_edge;
+    do{
+        HE->vert->col = HighlightHFace.F->color;
+        HE = HE->next;
+    }while(HE != HighlightHFace.F->start_edge);
+    HighlightVertex.create();
+    HighlightHalfLine.create();
+    HighlightHFace.create();
+    geom_mesh.create();
+    this->update();
+}
+
+void MyGL::slot_LoadOBJFile(){
+    std::vector<glm::vec4> vert_pos;
+    std::vector<glm::vec4> vert_uv;
+    std::vector<glm::vec4> vert_nor;
+    std::vector<QStringList> faces_con;
+
+    QString filename = QFileDialog::getOpenFileName(0, QString("Load OBJ File"), QDir::currentPath().append(QString("../..")), QString("*.obj"));
+    QFile file(filename);
+    if(!file.open(QIODevice::ReadOnly)){
+        qWarning("Could not open the OBJ file.");
+        return;
+    }
+    while(!file.atEnd()){
+        QByteArray line = file.readLine();
+        QString str(line);
+        QStringList strlist = str.split(" ");
+        if(strlist[0] == "v"){
+            vert_pos.push_back(glm::vec4(strlist[1].toDouble(), strlist[2].toDouble(), strlist[3].toDouble(), 1));
+        }
+        else if(strlist[0] == "vt"){
+            vert_uv.push_back(glm::vec4(strlist[1].toDouble(), strlist[2].toDouble(), 0, 1));
+        }
+        else if(strlist[0] == "vn"){
+            vert_nor.push_back(glm::vec4(strlist[1].toDouble(), strlist[2].toDouble(), strlist[3].toDouble(), 1));
+        }
+        else if(strlist[0] == "f"){
+            //build the face:
+            faces_con.push_back(strlist);
+        }
+    }
+
+    geom_mesh.setFromFile(vert_pos,vert_uv,vert_nor,faces_con);
+    geom_mesh.num_Vert = vert_pos.size();
+    //set sym
+    for(int i = 0; i < geom_mesh.HalfEdges.size(); i++){
+        for(int j = i+1; j < geom_mesh.HalfEdges.size(); j++){
+            glm::vec3 start_pos1, start_pos2;
+            HalfEdge *H1 = geom_mesh.HalfEdges[i], *H2 = geom_mesh.HalfEdges[j];
+            while(H1->next!=geom_mesh.HalfEdges[i]){
+                H1 = H1->next;
+            }
+            start_pos1 = H1->vert->pos;
+            while(H2->next!=geom_mesh.HalfEdges[j]){
+                H2 = H2->next;
+            }
+            start_pos2 = H2->vert->pos;
+            if(start_pos1 == geom_mesh.HalfEdges[j]->vert->pos && start_pos2 == geom_mesh.HalfEdges[i]->vert->pos){
+                geom_mesh.HalfEdges[i]->sym = geom_mesh.HalfEdges[j];
+                geom_mesh.HalfEdges[j]->sym = geom_mesh.HalfEdges[i];
+                break;
+            }
+        }
+    }
+//    HighlightVertex.V = nullptr;
+//    HighlightHFace.F = nullptr;
+//    HighlightHalfLine.HE = nullptr;
+    HighlightVertex.setVert(geom_mesh.Unique_Vertices[0]);
+    HighlightHalfLine.setLine(geom_mesh.HalfEdges[0]);
+    HighlightHFace.setFace(geom_mesh.Faces[0]);
+    HighlightHalfLine.create();
+    HighlightHFace.create();
+    HighlightVertex.create();
+    geom_mesh.create();
+    //emit signals
+    emit sig_PassVertices(geom_mesh.num_Vert);
+    emit sig_PassHalfEdges(geom_mesh.HalfEdges.size());
+    emit sig_PassFaces(geom_mesh.Faces.size());
+
+    this->update();
+}
+
+void MyGL::slot_ExportOBJFile(){
+    QFile data("../export.obj");
+    if (data.open(QFile::WriteOnly | QIODevice::Truncate)) {
+        QTextStream out(&data);
+        //out v_pos
+        for(int i = 0; i < geom_mesh.Unique_Vertices.size(); i++){
+            out<<"v ";
+            out<<geom_mesh.Unique_Vertices[i]->pos[0]<<" ";
+            out<<geom_mesh.Unique_Vertices[i]->pos[1]<<" ";
+            out<<geom_mesh.Unique_Vertices[i]->pos[2];
+            out<<"\n";
+        }
+        out<<"\n";
+        //out v_uv
+
+        //out v_nor
+        for(int i = 0; i < geom_mesh.Vertices.size(); i++){
+            out<<"vn ";
+            out<<geom_mesh.Vertices[i]->nor[0]<<" ";
+            out<<geom_mesh.Vertices[i]->nor[1]<<" ";
+            out<<geom_mesh.Vertices[i]->nor[2];
+            out<<"\n";
+        }
+        out<<"\n";
+        //out f
+        for(int i = 0; i < geom_mesh.Faces.size(); i++){
+            out<<"f";
+            HalfEdge *HE = geom_mesh.Faces[i]->start_edge;
+            do{
+                Vertex *V = HE->vert;
+                out<<" "<<(V->id+1)<<"/"<<"0"<<"/"<<(V->nor_id+1);
+                HE = HE->next;
+            }while(HE!=geom_mesh.Faces[i]->start_edge);
+            out<<"\n";
+        }
+    }
+    data.close();
 }

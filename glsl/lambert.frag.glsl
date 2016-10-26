@@ -12,13 +12,16 @@
 // position, light position, and vertex color.
 
 uniform vec4 u_Color; // The color with which to render this instance of geometry.
+uniform int u_Time;
+uniform int u_RenderMode;
+uniform int u_Func1; //Func1
 
 // These are the interpolated values out of the rasterizer, so you can't know
 // their specific values without knowing the vertices that contributed to them
 in vec4 fs_Nor;
 in vec4 fs_LightVec;
 in vec4 fs_Col;
-
+in vec4 fs_Pos;
 out vec4 out_Col; // This is the final output color that you will see on your
                   // screen for the pixel that is currently being processed.
 
@@ -28,7 +31,9 @@ void main()
         //vec4 diffuseColor = u_Color;
         vec4 diffuseColor = fs_Col;
         // Calculate the diffuse term for Lambert shading
+
         float diffuseTerm = dot(normalize(fs_Nor), normalize(fs_LightVec));
+
         // Avoid negative lighting values
         diffuseTerm = clamp(diffuseTerm, 0, 1);
 
@@ -37,6 +42,12 @@ void main()
         float lightIntensity = diffuseTerm + ambientTerm;   //Add a small float value to the color multiplier
                                                             //to simulate ambient lighting. This ensures that faces that are not
                                                             //lit by our point light are not completely black.
+
+        if(u_RenderMode == 1){
+            diffuseColor = diffuseColor + vec4(sin(u_Time * gl_FragCoord.xyz), 1);
+        }
+
+
 
         // Compute final shaded color
         out_Col = vec4(diffuseColor.rgb * lightIntensity, diffuseColor.a);

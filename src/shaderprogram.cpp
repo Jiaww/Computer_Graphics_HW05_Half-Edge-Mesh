@@ -7,6 +7,7 @@ ShaderProgram::ShaderProgram(GLWidget277 *context)
     : vertShader(), fragShader(), prog(),
       attrPos(-1), attrNor(-1), attrCol(-1),
       unifModel(-1), unifModelInvTr(-1), unifViewProj(-1), unifColor(-1),
+      unifTime(-1), unifRenderMode(-1),unifFunc1(-1),
       context(context)
 {}
 
@@ -66,6 +67,10 @@ void ShaderProgram::create(const char *vertfile, const char *fragfile)
     unifModelInvTr = context->glGetUniformLocation(prog, "u_ModelInvTr");
     unifViewProj   = context->glGetUniformLocation(prog, "u_ViewProj");
     unifColor      = context->glGetUniformLocation(prog, "u_Color");
+
+    unifTime       = context->glGetUniformLocation(prog, "u_Time");
+    unifRenderMode = context->glGetUniformLocation(prog, "u_RenderMode");
+    unifFunc1      = context->glGetUniformLocation(prog, "u_Func1");
 }
 
 void ShaderProgram::useMe()
@@ -244,4 +249,22 @@ void ShaderProgram::printLinkInfoLog(int prog)
         qDebug() << "LinkInfoLog:" << endl << infoLog << endl;
         delete [] infoLog;
     }
+}
+
+void ShaderProgram::setUnifTime(int timeCount){
+    useMe();
+    GLint v0 = timeCount;
+    context->glUniform1i(unifTime, v0);
+}
+
+void ShaderProgram::setRenderMode(int RenderMode){
+    useMe();
+    GLint v0 = RenderMode;
+    context->glUniform1i(unifRenderMode, v0);
+}
+
+void ShaderProgram::setFunc1(int Func1){
+    useMe();
+    GLint v0 = Func1;
+    context->glUniform1i(unifFunc1, v0);
 }

@@ -6,8 +6,10 @@ class HalfEdge;
 class Vertex{
 public:
     int id;
+    int nor_id;
     glm::vec3 pos;
     glm::vec3 nor;
+    glm::vec3 col;
     HalfEdge *edge;
     Vertex();
     Vertex(int id);
