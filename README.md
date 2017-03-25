@@ -1,1 +1,1 @@
-# Computer_Graphics_HW05
+# Computer_Graphics_HW05_Half-Edge Mesh
